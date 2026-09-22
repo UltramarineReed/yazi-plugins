@@ -229,7 +229,12 @@ end
 -- so the extra callers add no fetch traffic.
 ---@return CODES?
 local function resolve(st, url)
-	local dir = tostring(url.base or url.parent)
+	-- A search result's url is virtual (`search://<pattern>:<line>:<col>//<path>`),
+	-- so tostring() on it is not a path and never matches the real paths held in
+	-- st.dirs / st.repos. `url.path` is the underlying file; for ordinary files
+	-- it is exactly what tostring() would give.
+	local path = tostring(url.path)
+	local dir = tostring(Url(path).parent)
 
 	local repo = st.dirs[dir]
 	if not repo then
@@ -288,7 +293,7 @@ local function resolve(st, url)
 		return CODES.clean
 	end
 
-	local rel = Url(tostring(url):sub(#repo + 2))
+	local rel = Url(path:sub(#repo + 2))
 	local code = paths[tostring(rel)]
 	if code == CODES.untracked_dir then
 		return CODES.untracked

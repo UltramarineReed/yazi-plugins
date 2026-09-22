@@ -170,10 +170,19 @@ local GUTTER = {
 	none = "  ",
 }
 
+-- The real on-disk path of a file. A search result (`search --via=rg`) carries
+-- a virtual url -- `search://<pattern>:<line>:<col>//<path>` -- whose
+-- tostring() is not a usable path, so bat, git and io.open all fail on it. The
+-- url's `path` field is the underlying file in that case, and is identical to
+-- tostring() for ordinary files.
+local function disk_path(url)
+	return tostring(url.path)
+end
+
 -- Render the whole file once: bat for highlighting, git for the gutter,
 -- dim line numbers. Returns { lines, truncated } or nil, err.
 local function render(job)
-	local path = tostring(job.file.url)
+	local path = disk_path(job.file.url)
 	local cha = job.file.cha
 	if cha and cha.len and cha.len > MAX_FILE_BYTES then
 		return nil, string.format("File too large for preview (> %d MiB)", MAX_FILE_BYTES / 1024 / 1024)
@@ -247,7 +256,7 @@ function M:peek(job)
 end
 
 function M:peek_impl(job)
-	local path = tostring(job.file.url)
+	local path = disk_path(job.file.url)
 	local cha = job.file.cha
 	-- Width is part of the key: lines are pre-wrapped at render time, so a
 	-- pane resize must invalidate the cache and re-wrap.
